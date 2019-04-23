@@ -234,19 +234,21 @@ int main(){
 		}
 		fin.close();
 		//https://www.geeksforgeeks.org/sorting-2d-vector-in-c-set-1-by-row-and-column/
-		 
 		std::sort(unsort.begin(), unsort.end(),sortweight);
+
 		//#pragma omp parallel for 
 		for (int i = 0; i < m; ++i)
 		{
-			EG[i].from = unsort[i][0];
+			int j = i+1;
+			EG[i].from = unsort[j][0]-1;
 			// cout<<"EG "<<EG[i].from<<endl;
-			EG[i].to = unsort[i][1];
-			EG[i].weight = unsort[i][2];
-			backup[i].from = unsort[i][0];
-			backup[i].to = unsort[i][1];
-			backup[i].weight = unsort[i][2];
+			EG[i].to = unsort[j][1]-1;
+			EG[i].weight = unsort[j][2];
+			backup[i].from = unsort[j][0];
+			backup[i].to = unsort[j][1];
+			backup[i].weight = unsort[j][2];
 		}
+		//cout<<"EG "<<EG[1].from<<endl;
 
 		int* MST = new int[m];
 		#pragma omp parallel for 
@@ -264,6 +266,7 @@ int main(){
 		// }
 		vector<vector<double>> ans;
 		int mout = 0;
+		double cost = 0;
 		for (int i = 0; i < m; ++i)
 		{
 			if(MST[i]==1)
@@ -274,14 +277,17 @@ int main(){
 				tmp.push_back(backup[i].weight);
 				ans.push_back(tmp);
 				mout++;
+				cost += backup[i].weight;
 			}
 		}
 		std:sort(ans.begin(), ans.end(),sortfrom);
-		for (int i = 0; i < 20; ++i)
-		{
-			cout <<ans[i][0]<<" "<<ans[i][1]<<" "<<ans[i][2]<<endl;
-		}
+		// for (int i = 0; i < 20; ++i)
+		// {
+		// 	cout <<ans[i][0]<<" "<<ans[i][1]<<" "<<ans[i][2]<<endl;
+		// }
 		cout << "num edges output: "<< mout<<endl;
+		cout << "TOTAL cost output: "<< cost<<endl;
+
 		delete []EG;
 		delete []backup;
 
