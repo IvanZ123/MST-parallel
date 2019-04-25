@@ -150,7 +150,7 @@ int CountLines(char *filename)
 }
 
 
-void Par_Simulate_Priority_CW_using_Binary_Search(int n, int m, Edge* E,int* R )
+void Par_Simulate_Priority_CW_using_Binary_Search(long int n,long int m, Edge* E,int* R )
 {
 	int* B = new int[n];
 	int* l = new int[n];
@@ -164,28 +164,45 @@ void Par_Simulate_Priority_CW_using_Binary_Search(int n, int m, Edge* E,int* R )
 		l[i] = 0;
 		h[i] = m-1;
 	}
-	for(int k = 0; k <1 + log2(m); k++)
+	for(int k = 0; k <=1 + log2(m); k++)
 	{
 		#pragma omp parallel for
 		for (int i = 0; i < n; ++i)
 		{
 			B[i] = 0;
-			lo[i] = l[i];
-			hi[i] = h[i];
+			// lo[i] = l[i];
+			// hi[i] = h[i];
 		}
 		
+		// #pragma omp parallel for
+		// for (int i = 0; i < m; ++i)
+		// {
+		// 	int u = E[i].from;
+		// 	if(u>=n) continue;
+		// 	md[u] = floor((lo[u]+hi[u])/2);
+			
+		// 	if(i >= lo[u] && i <= md[u])
+		// 	{
+		// 		B[u] = 1;
+		// 	}
+		// }
+		// #pragma omp parallel for
+		// for (int i = 0; i < m; ++i)
+		// {
+		// 	int u = E[i].from;
+		// 	if(u>=n) continue;
+		// 	md[u] = floor((lo[u]+hi[u])/2);
+		// 	if(B[u] == 1 && i >= lo[u] && i <= md[u]) h[u] = md[u];
+		// 	else if(B[u] == 0 && i > md[u] && i<= hi[u]) l[u] = md[u] + 1;
+		// }
 		#pragma omp parallel for
 		for (int i = 0; i < m; ++i)
 		{
 			int u = E[i].from;
-			if(u>=n) 
-			{
-				continue;
-			}
-
-			md[u] = floor((lo[u]+hi[u])/2);
+			if(u>=n) continue;
+			md[u] = floor((l[u]+h[u])/2);
 			
-			if(i >= lo[u] && i <= md[u])
+			if(i >= l[u] && i <= md[u])
 			{
 				B[u] = 1;
 			}
@@ -195,9 +212,9 @@ void Par_Simulate_Priority_CW_using_Binary_Search(int n, int m, Edge* E,int* R )
 		{
 			int u = E[i].from;
 			if(u>=n) continue;
-			md[u] = floor((lo[u]+hi[u])/2);
-			if(B[u] == 1 && i >= lo[u] && i <= md[u]) h[u] = md[u];
-			else if(B[u] == 0 && i > md[u] && i<= hi[u]) l[u] = md[u] + 1;
+			md[u] = floor((l[u]+h[u])/2);
+			if(B[u] == 1 && i >= l[u] && i <= md[u]) h[u] = md[u];
+			else if(B[u] == 0 && i > md[u] && i<= h[u]) l[u] = md[u] + 1;
 		}
 	}
 	#pragma omp parallel for
@@ -209,6 +226,7 @@ void Par_Simulate_Priority_CW_using_Binary_Search(int n, int m, Edge* E,int* R )
 		{
 			R[u] = i;
 		}
+
 	}
 	delete []B;
 	delete []l;
@@ -219,7 +237,7 @@ void Par_Simulate_Priority_CW_using_Binary_Search(int n, int m, Edge* E,int* R )
 }
 
 
-void Par_Randomized_MST_Priority_CW (int n, int m, Edge *E, int *MST)
+void Par_Randomized_MST_Priority_CW (long int n,long int m, Edge *E, int *MST)
 {
 	int L[n];
 	int *C = new int[n];
@@ -236,11 +254,11 @@ void Par_Randomized_MST_Priority_CW (int n, int m, Edge *E, int *MST)
 	F = (m > 0) ? true:false;
 	while(F)
 	{
-		#pragma omp parallel for
-		for(int i =0; i < n; i++)
-		{
-			R[i] = m;
-		}	
+		// #pragma omp parallel for
+		// for(int i =0; i < n; i++)
+		// {
+		// 	R[i] = m;
+		// }	
 		//toss a coin
 		#pragma omp parallel for 
 		for(int i = 0; i < n; i++)
@@ -259,9 +277,10 @@ void Par_Randomized_MST_Priority_CW (int n, int m, Edge *E, int *MST)
 			
 			int u = E[i].from;
 			int v = E[i].to;
-			if(C[u]==1 && C[v] == 0 && R[u] == i && u < n && v < n )
+			if(C[u]==0 && C[v] == 1 && R[u] == i && u < n && v < n )
+			// if(C[u]==0 && C[v] == 1 && R[u] == i)
 			{
-				L[v] = u;
+				L[u] = v;
 				MST[i] = 1;
 			}
 		}
@@ -272,6 +291,7 @@ void Par_Randomized_MST_Priority_CW (int n, int m, Edge *E, int *MST)
 			int uu = E[i].from;
 			int vv = E[i].to;
 			if(uu<n && vv<n && L[uu] != L[vv]){
+			// if(L[uu] != L[vv]){
 				E[i].from = L[uu];
 				E[i].to = L[vv];
 			}
@@ -306,12 +326,21 @@ bool sortfrom( const vector<double>& v1,
 			return v1[0] < v2[0];
 		}
 
-int main(){
-	char filename[512] = "in1.txt";
+bool edgecomp(Edge e1, Edge e2)
+{
+	return e1.weight<e2.weight;
+}
+
+int main(int argc, char *argv[]){
+
+	// char filename[512] = "com-dblp-in.txt";
+	char filename[512] = "com-amazon-in.txt";
+	// char filename[512] = "in.txt";
+	omp_set_num_threads(68);
 	fstream fin;
-	string tmp;
-	int numL,n,m;
+	long numL,n,m;
 	fin.open(filename,ios::in);
+    double start_time, final_time;
 	if(fin.fail()) 
 	{
 		cout << "File not exit!" <<endl;
@@ -319,80 +348,65 @@ int main(){
 	}
 	else
 	{
+		// numL = CountLines(filename);
 		numL = CountLines(filename);
 		fin >> n;	
 		fin >> m;
 		cout << "n="<<n<<" m="<<m<<endl;
-		double edge[numL-1][3];
-		// vector<vector<double> >E;
+		
 		Edge* EG = new Edge[numL-1];
 		Edge* backup = new Edge[numL-1];
+		double (*edge)[3] = new double[m][3];
+
 		int i = 0;
-		vector<vector<double>> unsort;
-		std::vector<double> weight;
-		unordered_map<double,vector<int>> ump;
+		cout<<"EG defined"<<endl;
 		while(!fin.eof())
 		{
 			fin>>edge[i][0];
 			fin>>edge[i][1];
 			fin>>edge[i][2];
-			vector<double> tmp;
-			vector<int> tmp1;
-			tmp.push_back(edge[i][0]);
-			tmp.push_back(edge[i][1]);
-			tmp.push_back(edge[i][2]);
-			unsort.push_back(tmp);
-			weight.push_back(edge[i][2]);
-			tmp1.push_back(edge[i][0]);
-			tmp1.push_back(edge[i][1]);
-			ump.insert(make_pair(edge[i][2],tmp1));
 			i++;
 		}
 		fin.close();
 
-		
-		//https://www.geeksforgeeks.org/sorting-2d-vector-in-c-set-1-by-row-and-column/
-		std::sort(unsort.begin(), unsort.end(),sortweight);
-//use quick sort here instead of the sort. We want the sorted vetor<Edge> E as further input
-		quicksort(weight,0,weight.size()-1,32);
-		//#pragma omp parallel for 
+		#pragma omp parallel for
 		for (int i = 0; i < m; ++i)
 		{
-			int j = i+1;
-			EG[i].from = unsort[j][0]-1;
-			EG[i].to = unsort[j][1]-1;
-			EG[i].weight = unsort[j][2];
-			backup[i].from = unsort[j][0];
-			backup[i].to = unsort[j][1];
-			backup[i].weight = unsort[j][2];
-			// double w = weight[i];
-			// cout << "w= "<<w<<endl;
-			// std::vector<int> vt = ump[w];
-			// int u = vt[0];
-			// int v = vt[1];
-			// cout<< "u = "<<u<<" v = "<<v<<endl;
-			// EG[i].from = u-1;
-			// EG[i].to = v-1;
-			// EG[i].weight = w;
-			// backup[i].from = u;
-			// backup[i].to = v;
-			// backup[i].weight = w;
+			EG[i].from = edge[i][0]-1;
+			EG[i].to = edge[i][1]-1;
+			EG[i].weight = edge[i][2];
+			backup[i].from = edge[i][0];
+			backup[i].to = edge[i][1];
+			backup[i].weight = edge[i][2];
 		}
-		//cout<<"EG "<<EG[1].from<<endl;
 
+		cout<<"data got"<<endl;
+		sort(EG,EG+m,&edgecomp);
+		sort(backup,backup+m,&edgecomp);
+		cout<<"data sorted"<<endl;
+		//https://www.geeksforgeeks.org/sorting-2d-vector-in-c-set-1-by-row-and-column/
+		// std::sort(unsort.begin(), unsort.end(),sortweight);
+		//use quick sort here instead of the sort. We want the sorted vetor<Edge> E as further input
+		//quicksort(weight,0,weight.size()-1,32);
 		int* MST = new int[m];
 		#pragma omp parallel for 
 		for (int i = 0; i < m; ++i)
 		{
 			MST[i] = 0;
 		}
+		/* starting the clock */
+	    start_time = omp_get_wtime();
 
+		cout<<"program start"<<endl;
 		Par_Randomized_MST_Priority_CW(n,m,EG,MST);
+		cout<<"program end"<<endl;
+		final_time = omp_get_wtime() - start_time;
 
+		printf("Total time: %.6f\n",final_time);
 	
 		vector<vector<double>> ans;
-		int mout = 0;
-		double cost = 0;
+		long mout = 0;
+		long double cost = 0;
 		for (int i = 0; i < m; ++i)
 		{
 			if(MST[i]==1)
@@ -406,17 +420,24 @@ int main(){
 				cost += backup[i].weight;
 			}
 		}
-		std:sort(ans.begin(), ans.end(),sortfrom);\
-		//see output
-		// for (int i = 0; i < 20; ++i)
-		// {
-		// 	cout <<ans[i][0]<<" "<<ans[i][1]<<" "<<ans[i][2]<<endl;
-		// }
+		std:sort(ans.begin(), ans.end(),sortfrom);
+		
 		cout << "num edges output: "<< mout<<endl;
 		cout << "TOTAL cost output: "<< cost<<endl;
+ 		ofstream output;
+		output.open ("com-amazon-search-out.txt");
+		// output.open ("out2.txt");
+		output <<mout<<" "<<cost <<"\n";
+		for (int i = 0; i < ans.size(); ++i)
+		{
+			output <<ans[i][0]<<" "<<ans[i][1]<<" "<<ans[i][2]<<"\n";
+		}
+ 		output.close();
 
-		delete []EG;
-		delete []backup;
+		delete [] EG;
+		delete [] backup;
+		delete [] MST;
+		delete [] edge;
 
 	}
 
